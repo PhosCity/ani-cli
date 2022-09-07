@@ -24,6 +24,7 @@ help_text () {
 	  -q set video quality (best|worst|360|480|720|1080)
 	  -s watch anime together with friends, using Syncplay (works with mpv only)
 	  -f use fzf for anime selection
+	  -l use dmenu as a launcher for anime selection
 	  -a specify episode to watch
 	  -d download episode
 	  -p download episode to specified directory
@@ -64,11 +65,19 @@ die () {
 
 # display an informational message (first argument in green, second in magenta)
 inf () {
-	printf "\33[2K\r\033[1;35m%s \033[1;35m%s\033[0m\n" "$1" "$2"
+	if [ "${dmenu}" -eq 1 ]; then
+	  notify-send "$1" "$2"
+	else
+	  printf "\33[2K\r\033[1;35m%s \033[1;35m%s\033[0m\n" "$1" "$2"
+	fi
 }
 
 progress() {
-	printf "\33[2K\r\033[1;34m%s\033[0m" "$1"
+	if [ "${dmenu}" -eq 1 ]; then
+	  notify-send "$1" "$2"
+	else
+	  printf "\33[2K\r\033[1;34m%s\033[0m" "$1"
+	fi
 }
 
 debug () {
@@ -104,6 +113,10 @@ selection_menu() {
 
 selection_menu_fzf() {
 	printf "%s\n%s" "$1" "$2" | fzf --height=30% --border -1 --layout=reverse --header-first --header-lines=1 --cycle --with-nth 2.. | cut -f1 -d' '
+}
+
+selection_menu_dmenu() {
+	printf "%s\n%s" "$1" "$2" | dmenu -l 30 | cut -f1 -d' '
 }
 
 version_text () {
@@ -328,7 +341,7 @@ process_search () {
 
 # anime-selection menu handling function
 anime_selection () {
-	if [ "$fzf" -eq 0 ];then
+	if [ "${dmenu}" -eq 0 ] && [ "$fzf" -eq 0 ];then
 		inf "$scrape Results >>"
 	else
 		progress ""
@@ -347,7 +360,10 @@ anime_selection () {
 		choice=1
 	elif [ -z "$ep_choice_to_start" ] || { [ -n "$ep_choice_to_start" ] && [ -z "$select_first" ]; }; then
 		selection_list=$(append "$selection_list" "quit" "q")
-	if [ "$fzf" -eq 1 ]; then
+	if [ "${dmenu}" -eq 1 ]; then
+		choice=$(selection_menu_dmenu "$selection_list")
+		[ -z "$choice" ] && exit 0
+	elif [ "$fzf" -eq 1 ]; then
 		choice=$(selection_menu_fzf ". $scrape Results>>" "$selection_list")
 		[ -z "$choice" ] && exit 0
 	else
@@ -468,12 +484,20 @@ play_episode () {
 			fi
 			;;
 		iina)
-			nohup "$player_fn" "$video_url" --no-stdin --keep-running --mpv-referrer="$refr" --mpv-force-media-title="$trackma_title" > /dev/null 2>&1 & ;;
+      if [ "$dmenu" -eq 1 ];then
+        "$player_fn" "$video_url" --no-stdin --keep-running --mpv-referrer="$refr" --mpv-force-media-title="$trackma_title" > /dev/null 2>&1
+      else
+        nohup "$player_fn" "$video_url" --no-stdin --keep-running --mpv-referrer="$refr" --mpv-force-media-title="$trackma_title" > /dev/null 2>&1 &
+      fi;;
 		vlc)
 			if uname -a | grep -qE '[Aa]ndroid';then
 				am start --user 0 -a android.intent.action.VIEW -d "$video_url" -n org.videolan.vlc/org.videolan.vlc.gui.video.VideoPlayerActivity -e "title" "$trackma_title" > /dev/null 2>&1 &
 			else
-				nohup "$player_fn" "$video_url"  --http-referrer="$refr" --meta-title "$trackma_title" --play-and-exit > /dev/null 2>&1 &
+        if [ "$dmenu" -eq 1 ];then
+				  "$player_fn" "$video_url"  --http-referrer="$refr" --meta-title "$trackma_title" --play-and-exit > /dev/null 2>&1
+        else
+				  nohup "$player_fn" "$video_url"  --http-referrer="$refr" --meta-title "$trackma_title" --play-and-exit > /dev/null 2>&1 &
+        fi
 			fi
 			;;
 		"syncplay"|"/Applications/Syncplay.app/Contents/MacOS/syncplay"|"/c/Program Files (x86)/Syncplay/Syncplay.exe")
@@ -482,7 +506,11 @@ play_episode () {
 			if uname -a | grep -qE '[Aa]ndroid';then
 				am start --user 0 -a android.intent.action.VIEW -d "$video_url" -n is.xyz.mpv/.MPVActivity > /dev/null 2>&1 &
 			else
-				nohup "$player_fn" "$video_url" --referrer="$refr" --force-media-title="$trackma_title" > /dev/null 2>&1 &
+        if [ "$dmenu" -eq 1 ];then
+          "$player_fn" "$video_url" --referrer="$refr" --force-media-title="$trackma_title" > /dev/null 2>&1
+        else
+          nohup "$player_fn" "$video_url" --referrer="$refr" --force-media-title="$trackma_title" > /dev/null 2>&1 &
+        fi
 			fi
 			;;
 	esac
@@ -503,6 +531,7 @@ scrape=Query
 debug=0
 choice=
 fzf=0
+dmenu=0
 auto_play=0
 download_dir="$(pwd)"
 case "$(uname)" in
@@ -516,7 +545,7 @@ logfile="$logdir/ani-hsts"
 [ -d "$logdir" ] || mkdir "$logdir"
 [ -f "$logfile" ] || : > "$logfile"
 
-while getopts 'svq:dp:chDUVa:xr:fn' OPT; do
+while getopts 'svq:dp:chDUVa:xr:fln' OPT; do
 	case $OPT in
 		d) player_fn='download' ;;
 		a) ep_choice_to_start=$OPTARG ;;
@@ -541,6 +570,7 @@ while getopts 'svq:dp:chDUVa:xr:fn' OPT; do
 		x) debug=1 ;;
 		r) select_provider=$OPTARG ;;
 		f) fzf=1 ;;
+		l) dmenu=1 ;;
 		c) scrape=History ;;
 		v) player_fn='vlc';;
 		V)
@@ -557,6 +587,7 @@ shift $((OPTIND - 1))
 progress "Checking dependencies.."
 # shellcheck disable=SC2046
 dep_ch "curl" "sed" "grep" "openssl" || true
+[ "${dmenu}" -eq 1 ] && dep_ch "dmenu" "notify-send"
 
 if [ "$player_fn" = "download" ];then
     dep_ch "ffmpeg" "axel"
@@ -610,7 +641,11 @@ while : ; do
 	[ "$first_ep_number" -ne "$last_ep_number" ] && menu=$(append "$menu" 'select' 's')
 	menu=$(append "$menu" 'update and quit' 'q')
 	menu=$(append "$menu" 'quit' 'Q')
-	if [ "$fzf" -eq 1 ];then
+	if [ "$dmenu" -eq 1 ];then
+		progress ""
+		choice="$(selection_menu_dmenu "$menu")"
+		[ -z "$choice" ] && die "No anime Selected"
+	elif [ "$fzf" -eq 1 ];then
 		progress ""
 		choice="$(selection_menu_fzf ". Menu>>" "$menu")"
 		[ -z "$choice" ] && die "No anime Selected"
