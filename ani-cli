@@ -176,7 +176,7 @@ process_hist_entry () {
 	episode_list "$temp_anime_id"
 	latest_ep=$last_ep_number
 	if [ -n "$latest_ep" ] && [ "$latest_ep" -ge "$current_ep" ]; then
-		printf "%s : %s / %s\n" "$temp_anime_id" "$current_ep" "$latest_ep"
+		printf "%s : %s / %s\n" "$temp_anime_id" $(($current_ep-1)) "$latest_ep"
 	fi
 }
 
