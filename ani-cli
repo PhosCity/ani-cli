@@ -144,6 +144,14 @@ download () {
 	esac
 }
 
+# write anime and episode number and save to temporary history
+update_history () {
+	grep -q "${selection_id}" "${logfile}" || printf "%s\t%s\n" "${selection_id}" $((episode+1)) >> "${logfile}"
+	sed -E "s/^${selection_id}\t[0-9]*/${selection_id}\t$((episode+1))/" "${logfile}" > "${logfile}.new"
+	# overwrite history with temporary history
+	mv "${logfile}.new" "${logfile}"
+}
+
 #############
 # SEARCHING #
 #############
@@ -430,9 +438,6 @@ open_episode () {
 		get_video_link "$dpage_link"
 	fi
 	[ "$debug" -eq 1 ] && exit 0
-	# write anime and episode number and save to temporary history
-	grep -q "$selection_id" "$logfile" || printf "%s\t%s\n" "$selection_id" $((episode+1)) >> "$logfile"
-	sed -E "s/^${selection_id}\t[0-9]*/${selection_id}\t$((episode+1))/" "$logfile" > "${logfile}.new"
 	[ ! "$PID" = "0" ] && kill "$PID" >/dev/null 2>&1
 	[ -z "$video_url" ] && die "Video URL not found"
 	trackma_title="$(printf '%s' "$anime_id Episode $episode" | tr '-' ' ' | awk '{for(i=1;i<=NF;i++){ $i=toupper(substr($i,1,1)) substr($i,2) }}1')"
@@ -445,8 +450,6 @@ open_episode () {
 		sleep 2
 	fi
 	PID=$!
-	# overwrite history with temporary history
-	mv "${logfile}.new" "$logfile"
 }
 
 play_episode () {
@@ -598,11 +601,15 @@ while : ; do
 	auto_play=0
 	unset menu
 	unset options
-	[ "$episode" -ne "$last_ep_number" ] && menu=$(append "$menu" 'next' 'n')
+	if [ "${episode}" -ne "${last_ep_number}" ]; then
+    menu=$(append "$menu" 'update and next' 'n')
+    menu=$(append "$menu" 'next' 'N')
+	fi
 	[ "$episode" -ne "$first_ep_number" ] && menu=$(append "$menu" 'previous' 'p')
 	menu=$(append "$menu" 'replay' 'r')
 	[ "$first_ep_number" -ne "$last_ep_number" ] && menu=$(append "$menu" 'select' 's')
-	menu=$(append "$menu" 'quit' 'q')
+	menu=$(append "$menu" 'update and quit' 'q')
+	menu=$(append "$menu" 'quit' 'Q')
 	if [ "$fzf" -eq 1 ];then
 		progress ""
 		choice="$(selection_menu_fzf ". Menu>>" "$menu")"
@@ -613,6 +620,11 @@ while : ; do
 	fi
 	case $choice in
 		n|'')
+			update_history
+			ep_choice_start=$((episode + 1))
+			unset ep_choice_end
+			;;
+		N)
 			ep_choice_start=$((episode + 1))
 			unset ep_choice_end
 			;;
@@ -627,6 +639,9 @@ while : ; do
 		s)
 			episode_selection ;;
 		q)
+			update_history
+			break ;;
+		Q)
 			break ;;
 		*)
 			tput clear
