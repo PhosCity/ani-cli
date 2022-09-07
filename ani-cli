@@ -184,7 +184,7 @@ process_hist_entry () {
 search_history () {
 	[ ! -s "$logfile" ] && die "History is empty"
 	progress "Processing $scrape.."
-	search_results=$(while read -r anime_id; do process_hist_entry & done < "$logfile"; wait)
+	search_results=$(while read -r anime_id; do process_hist_entry & done < "$logfile" | sort; wait)
 	[ -z "$search_results" ] && die "No unwatched episodes"
 	one_hist=$(printf '%s\n' "$search_results" | grep -e "$" -c)
 	[ "$one_hist" = 1 ] && select_first=1
