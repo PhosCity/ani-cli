@@ -25,6 +25,7 @@ help_text () {
 	  -s watch anime together with friends, using Syncplay (works with mpv only)
 	  -f use fzf for anime selection
 	  -l use dmenu as a launcher for anime selection
+	  -t use trackma to update anilist or mal
 	  -a specify episode to watch
 	  -d download episode
 	  -p download episode to specified directory
@@ -54,7 +55,11 @@ retry () {
 
 # display an error message to stderr (in red)
 err () {
-	printf "\33[2K\r\033[1;31m%s\033[0m\n" "$*" >&2
+	if [ "${dmenu}" -eq 1 ]; then
+	  notify-send "$*"
+	else
+	  printf "\33[2K\r\033[1;31m%s\033[0m\n" "$*" >&2
+	fi
 }
 
 #display error message and exit
@@ -86,9 +91,15 @@ debug () {
 
 # prompts the user with message in $1-2 ($1 in blue, $2 in magenta) and saves the input to the variables in $REPLY and $REPLY2
 prompt () {
-	[ -n "$*" ] && printf "\33[2K\r\033[1;35m%s\n" "$*"
-	printf "\033[1;35m> \033[0m"
-	read -r REPLY REPLY2
+	if [ "${dmenu}" -eq 1 ]; then
+		result=$(echo "" | dmenu -p "$1 $2")
+		REPLY=$(echo "${result}" | sed -e 's/\s.*$//')
+		REPLY2=$(echo "${result}" | sed 's/[^ ]* *//')
+	else
+		[ -n "$*" ] && printf "\33[2K\r\033[1;35m%s\n" "$*"
+		printf "\033[1;35m> \033[0m"
+		read -r REPLY REPLY2
+	fi
 }
 
 selection_menu() {
@@ -165,6 +176,42 @@ update_history () {
 	mv "${logfile}.new" "${logfile}"
 }
 
+###########
+# TRACKMA #
+###########
+
+trackma_accounts() {
+	if printf "q" | trackma  | grep -q "No accounts."; then
+		die "Accounts have not been added to trackma. Please type 'trackma' in terminal and follow instructions to add anilist or myanimelist account."
+	elif [ "$1" = "anilist"  ]; then
+		trackma_account_no=$(printf "q" | trackma - | grep "anilist" | cut -d: -f1)
+		[ -z "${trackma_account_no}" ] && die "Anilist account not found in trackma. Please add it or change 'track' variable to 'mal' to track myanimelist instead."
+	elif [ "$1" = "mal"  ]; then
+		trackma_account_no=$(printf "q" | trackma - | grep "mal" | cut -d: -f1)
+		[ -z "${trackma_account_no}" ] && die "Myanimelist account not found in trackma. Please add it or change 'track' variable to 'anilist' to track anilist instead."
+	fi
+}
+
+trackma_update () {
+	anilist_name=$1
+	current_episode=$2
+	trackma -a "${trackma_account_no}" update "${anilist_name}" "${current_episode}"
+	trackma -a "${trackma_account_no}" send
+}
+
+watching_animes_from_anilist () {
+	COLUMNS=130 trackma -a "${trackma_account_no}" list | sed \
+				-e "s/\x1b//g" \
+				-e "s/^|[[:space:]]*[0-9]*[[:space:]]*//g" \
+				-e "s:[|/0-9\? ]*$::g" \
+				-e "s/\.*$//g" \
+				-e "s/\[0m$//g" \
+				-e "s/^[[;0-9]*m//g" \
+				-e "/^[0-9]*[[:space:]]results$/d" \
+				-e "/Index  Title/d" \
+				-e "/^$/d"> /tmp/trackma-cli.txt
+}
+
 #############
 # SEARCHING #
 #############
@@ -196,7 +243,7 @@ process_hist_entry () {
 # compares history with gogoplay, only shows unfinished anime
 search_history () {
 	[ ! -s "$logfile" ] && die "History is empty"
-	progress "Processing $scrape.."
+	[ "${dmenu}" -ne 1 ] && progress "Processing $scrape.."
 	search_results=$(while read -r anime_id; do process_hist_entry & done < "$logfile" | sort; wait)
 	[ -z "$search_results" ] && die "No unwatched episodes"
 	one_hist=$(printf '%s\n' "$search_results" | grep -e "$" -c)
@@ -532,6 +579,8 @@ debug=0
 choice=
 fzf=0
 dmenu=0
+trackma=0
+track="anilist"  # Use 'anilist' to track anilist to 'mal' to track myanimelist.
 auto_play=0
 download_dir="$(pwd)"
 case "$(uname)" in
@@ -541,11 +590,14 @@ esac
 # history file path
 logdir="${XDG_CACHE_HOME:-$HOME/.cache}"
 logfile="$logdir/ani-hsts"
+trackmafile="${XDG_CACHE_HOME:-$HOME/.cache}/ani-trackma-${track}"
+
 # create history file and history dir if none found
 [ -d "$logdir" ] || mkdir "$logdir"
 [ -f "$logfile" ] || : > "$logfile"
+[ -f "${trackmafile}" ] || : > "${trackmafile}"
 
-while getopts 'svq:dp:chDUVa:xr:fln' OPT; do
+while getopts 'svq:dp:chDUVa:xr:fnlt' OPT; do
 	case $OPT in
 		d) player_fn='download' ;;
 		a) ep_choice_to_start=$OPTARG ;;
@@ -571,6 +623,7 @@ while getopts 'svq:dp:chDUVa:xr:fln' OPT; do
 		r) select_provider=$OPTARG ;;
 		f) fzf=1 ;;
 		l) dmenu=1 ;;
+		t) trackma=1 ;;
 		c) scrape=History ;;
 		v) player_fn='vlc';;
 		V)
@@ -584,9 +637,10 @@ while getopts 'svq:dp:chDUVa:xr:fln' OPT; do
 	esac
 done
 shift $((OPTIND - 1))
-progress "Checking dependencies.."
+[ "${dmenu}" -ne 1 ] && progress "Checking dependencies.."
 # shellcheck disable=SC2046
 dep_ch "curl" "sed" "grep" "openssl" || true
+[ "${trackma}" -eq 1 ] && dep_ch "trackma"
 [ "${dmenu}" -eq 1 ] && dep_ch "dmenu" "notify-send"
 
 if [ "$player_fn" = "download" ];then
@@ -619,6 +673,59 @@ elif [ "$scrape" = "New" ];then
 	exit 0
 else
 	search_history
+fi
+
+# While updating Anilist/ Mal using trackma, we need to use the name of the anime present in Anilist/Mal. Hence the need for trackmafile
+if [ "${trackma}" -eq 1 ]; then
+	trackma_accounts "${track}"
+	temp_sel_id=$(printf "%s" "${selection_id}")
+	trackma_id=$(grep "${temp_sel_id}" "${trackmafile}" | cut -d\" -f2)
+	if [ -z "${trackma_id}" ]; then
+		watching_animes_from_anilist
+		temp_selection_id=$(echo "${selection_id}" | cut -d- -f1)
+		anime_name=$(grep -i "${temp_selection_id}" /tmp/trackma-cli.txt)
+		no_of_results=$(echo "${anime_name}" | wc -l)
+
+		if [ -n "${anime_name}" ]; then
+			if [ "${no_of_results}" -gt 1 ]; then
+				if [ "${dmenu}" -eq 1 ]; then
+					anime_name=$(echo "${anime_name}" | dmenu -i -l 10 -p "Select one:")
+        else
+					anime_name=$(echo "${anime_name}" | fzf --layout=reverse --prompt "Select one:") 
+        fi
+			fi
+			prompt "${anime_name} was auto-selected from your list. Is this correct? [y/n]"
+		fi
+		if [ "${REPLY}" = "n" ]; then
+			if [ "${dmenu}" -eq 1 ]; then
+				anime_name=$(dmenu -i -l 30 -p "Select an anime: (If anime not found, add it to anilist first)" < /tmp/trackma-cli.txt)
+			else
+				anime_name=$(fzf --layout=reverse --prompt "Select an anime: (If anime not found, add it to anilist first)" < /tmp/trackma-cli.txt)
+			fi
+		fi
+		if [ -z "${anime_name}" ]; then
+      [ "${dmenu}" -eq 1 ] && die "It seems the anime could not be found in your list. Please add it to your ${track} first."
+			prompt "It seems anime could not be found in your list. Do you want to add the anime to your ${track}? [y/n]"
+			case "${REPLY}" in
+				y)
+					trackma -a "${trackma_account_no}" add "${temp_sel_id}"
+					watching_animes_from_anilist
+					temp_selection_id=$(echo "${selection_id}" | cut -d- -f1)
+					anime_name=$(grep -i "${temp_selection_id}" /tmp/trackma-cli.txt)
+					;;
+				*)
+					err "No anime selected."
+					die "Please add the anime you want to watch in ${track} before continuing or disable ${track} syncing."
+					;;
+			esac
+		fi
+		if [ -n "${anime_name}" ]; then
+			printf "%s\t%s\n" "${selection_id}" "\"${anime_name}\"" >> "${trackmafile}"
+			trackma_id=$(grep "${selection_id}" "${trackmafile}" | cut -d\" -f2)
+		else
+			die "Please add the anime you want to watch in ${track} before continuing or disable ${track} syncing."
+		fi
+	fi
 fi
 
 generate_ep_list
@@ -655,6 +762,7 @@ while : ; do
 	fi
 	case $choice in
 		n|'')
+			[ "${trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${episode}"
 			update_history
 			ep_choice_start=$((episode + 1))
 			unset ep_choice_end
@@ -674,6 +782,7 @@ while : ; do
 		s)
 			episode_selection ;;
 		q)
+			[ "${trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${episode}"
 			update_history
 			break ;;
 		Q)
