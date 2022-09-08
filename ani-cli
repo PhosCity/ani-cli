@@ -136,7 +136,7 @@ version_text () {
 
 # get the newest version of this script from github and replace it
 update_script () {
-	update="$(curl -A "$agent" -s "https://raw.githubusercontent.com/pystardust/ani-cli/master/ani-cli")" || die "Connection error"
+	update="$(curl -A "$agent" -s "https://raw.githubusercontent.com/PhosCity/ani-cli/phoscity/ani-cli")" || die "Connection error"
 	update="$(printf '%s\n' "$update" | diff -u "$0" -)"
 	if [ -z "$update" ]; then
 		inf "Script is up to date :)"
@@ -531,20 +531,20 @@ play_episode () {
 			fi
 			;;
 		iina)
-      if [ "$dmenu" -eq 1 ];then
-        "$player_fn" "$video_url" --no-stdin --keep-running --mpv-referrer="$refr" --mpv-force-media-title="$trackma_title" > /dev/null 2>&1
-      else
-        nohup "$player_fn" "$video_url" --no-stdin --keep-running --mpv-referrer="$refr" --mpv-force-media-title="$trackma_title" > /dev/null 2>&1 &
-      fi;;
+			if [ "$dmenu" -eq 1 ];then
+				"$player_fn" "$video_url" --no-stdin --keep-running --mpv-referrer="$refr" --mpv-force-media-title="$trackma_title" > /dev/null 2>&1
+			else
+				nohup "$player_fn" "$video_url" --no-stdin --keep-running --mpv-referrer="$refr" --mpv-force-media-title="$trackma_title" > /dev/null 2>&1 &
+			fi;;
 		vlc)
 			if uname -a | grep -qE '[Aa]ndroid';then
 				am start --user 0 -a android.intent.action.VIEW -d "$video_url" -n org.videolan.vlc/org.videolan.vlc.gui.video.VideoPlayerActivity -e "title" "$trackma_title" > /dev/null 2>&1 &
 			else
-        if [ "$dmenu" -eq 1 ];then
-				  "$player_fn" "$video_url"  --http-referrer="$refr" --meta-title "$trackma_title" --play-and-exit > /dev/null 2>&1
-        else
-				  nohup "$player_fn" "$video_url"  --http-referrer="$refr" --meta-title "$trackma_title" --play-and-exit > /dev/null 2>&1 &
-        fi
+				if [ "$dmenu" -eq 1 ];then
+					"$player_fn" "$video_url"  --http-referrer="$refr" --meta-title "$trackma_title" --play-and-exit > /dev/null 2>&1
+				else
+					nohup "$player_fn" "$video_url"  --http-referrer="$refr" --meta-title "$trackma_title" --play-and-exit > /dev/null 2>&1 &
+				fi
 			fi
 			;;
 		"syncplay"|"/Applications/Syncplay.app/Contents/MacOS/syncplay"|"/c/Program Files (x86)/Syncplay/Syncplay.exe")
@@ -553,11 +553,11 @@ play_episode () {
 			if uname -a | grep -qE '[Aa]ndroid';then
 				am start --user 0 -a android.intent.action.VIEW -d "$video_url" -n is.xyz.mpv/.MPVActivity > /dev/null 2>&1 &
 			else
-        if [ "$dmenu" -eq 1 ];then
-          "$player_fn" "$video_url" --referrer="$refr" --force-media-title="$trackma_title" > /dev/null 2>&1
-        else
-          nohup "$player_fn" "$video_url" --referrer="$refr" --force-media-title="$trackma_title" > /dev/null 2>&1 &
-        fi
+				if [ "$dmenu" -eq 1 ];then
+					"$player_fn" "$video_url" --referrer="$refr" --force-media-title="$trackma_title" > /dev/null 2>&1
+				else
+					nohup "$player_fn" "$video_url" --referrer="$refr" --force-media-title="$trackma_title" > /dev/null 2>&1 &
+				fi
 			fi
 			;;
 	esac
