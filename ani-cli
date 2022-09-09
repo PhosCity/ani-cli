@@ -152,9 +152,10 @@ update_script () {
 dep_ch () {
 	for dep; do
 		if ! command -v "$dep" >/dev/null ; then
-			die "Program \"$dep\" not found. Please install it."
+			missing_dep="${missing_dep}\"${dep}\", "
 		fi
 	done
+	missing_dep=$(echo "${missing_dep}" | sed "s/, $/ /")
 }
 
 download () {
@@ -646,6 +647,7 @@ if [ "$player_fn" = "download" ];then
 elif ! (uname -a | grep -qE '[Aa]ndroid');then
     dep_ch "$player_fn"
 fi
+[ -n "${missing_dep}" ] && die "${missing_dep}not found. Please install all missing programs."
 
 gogohd_url="https://gogohd.net/"
 base_url="https://animixplay.to"
