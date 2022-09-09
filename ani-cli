@@ -78,9 +78,7 @@ inf () {
 }
 
 progress() {
-	if [ "${dmenu}" -eq 1 ]; then
-	  notify-send "$1" "$2"
-	else
+	if [ "${dmenu}" -ne 1 ]; then
 	  printf "\33[2K\r\033[1;34m%s\033[0m" "$1"
 	fi
 }
@@ -243,7 +241,7 @@ process_hist_entry () {
 # compares history with gogoplay, only shows unfinished anime
 search_history () {
 	[ ! -s "$logfile" ] && die "History is empty"
-	[ "${dmenu}" -ne 1 ] && progress "Processing $scrape.."
+	progress "Processing $scrape.."
 	search_results=$(while read -r anime_id; do process_hist_entry & done < "$logfile" | sort; wait)
 	[ -z "$search_results" ] && die "No unwatched episodes"
 	one_hist=$(printf '%s\n' "$search_results" | grep -e "$" -c)
@@ -637,7 +635,7 @@ while getopts 'svq:dp:chDUVa:xr:fnlt' OPT; do
 	esac
 done
 shift $((OPTIND - 1))
-[ "${dmenu}" -ne 1 ] && progress "Checking dependencies.."
+progress "Checking dependencies.."
 # shellcheck disable=SC2046
 dep_ch "curl" "sed" "grep" "openssl" || true
 [ "${trackma}" -eq 1 ] && dep_ch "trackma"
