@@ -602,6 +602,8 @@ while getopts 'svq:dp:chDUVa:xr:fnlt' OPT; do
 		a) ep_choice_to_start=$OPTARG ;;
 		U) update_script ;;
 		D)
+			cp "${logfile}" /tmp/ani-hsts
+			inf "Successfully cleared the history file. A copy of your history file will temporarily be available in /tmp/ani-hsts in case you want to recover it."
 			: > "$logfile"
 			exit 0
 			;;
