@@ -691,9 +691,9 @@ if [ "${trackma}" -eq 1 ]; then
 			if [ "${no_of_results}" -gt 1 ]; then
 				if [ "${dmenu}" -eq 1 ]; then
 					anime_name=$(echo "${anime_name}" | dmenu -i -l 10 -p "Select one:")
-        else
+				else
 					anime_name=$(echo "${anime_name}" | fzf --layout=reverse --prompt "Select one:") 
-        fi
+				fi
 			fi
 			prompt "${anime_name} was auto-selected from your list. Is this correct? [y/n]"
 		fi
@@ -705,7 +705,7 @@ if [ "${trackma}" -eq 1 ]; then
 			fi
 		fi
 		if [ -z "${anime_name}" ]; then
-      [ "${dmenu}" -eq 1 ] && die "It seems the anime could not be found in your list. Please add it to your ${track} first."
+			[ "${dmenu}" -eq 1 ] && die "It seems the anime could not be found in your list. Please add it to your ${track} first."
 			prompt "It seems anime could not be found in your list. Do you want to add the anime to your ${track}? [y/n]"
 			case "${REPLY}" in
 				y)
@@ -741,8 +741,8 @@ while : ; do
 	unset menu
 	unset options
 	if [ "${episode}" -ne "${last_ep_number}" ]; then
-    menu=$(append "$menu" 'update and next' 'n')
-    menu=$(append "$menu" 'next' 'N')
+		menu=$(append "$menu" 'update and next' 'n')
+		menu=$(append "$menu" 'next' 'N')
 	fi
 	[ "$episode" -ne "$first_ep_number" ] && menu=$(append "$menu" 'previous' 'p')
 	menu=$(append "$menu" 'replay' 'r')
