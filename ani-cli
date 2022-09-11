@@ -201,16 +201,13 @@ trackma_update () {
 # Collects the anime from your watching or plan to watch list to autoselect the anime to track.
 # If the anime is neither in your watching nor in your plan to watch list, the script will prompt you to add the anime first.
 watching_animes_from_anilist() {
-	printf "filter watching\nlist\nfilter plantowatch\nlist\nexit" | COLUMNS=130 trackma -a 1 | grep "^|" | sed \
-		-e "s/\x1b//g" \
-		-e "s/^|[[:space:]]*[0-9]*[[:space:]]*//g" \
-		-e "s:[|/0-9\? ]*$::g" \
-		-e "s/\.*$//g" \
-		-e "s/\[0m$//g" \
-		-e "s/^[[;0-9]*m//g" \
-		-e "/^[0-9]*[[:space:]]results$/d" \
-		-e "/Index  Title/d" \
-		-e "/^$/d" >/tmp/trackma-cli.txt
+	printf "filter watching\nlist\nfilter plantowatch\nlist\nexit" | COLUMNS=130 trackma -a "${trackma_account_no}" | grep "^|" | sed "
+		s/\x1b//g
+		s/^|[[:space:]]*[0-9]*[[:space:]]*//g
+		s:[|/0-9\? ]*$::g
+		s/\.*$//g
+		s/\[0m$//g
+		s/^[[;0-9]*m//g " >/tmp/trackma-cli.txt
 }
 
 #############
