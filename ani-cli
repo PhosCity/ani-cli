@@ -125,7 +125,7 @@ selection_menu_fzf() {
 }
 
 selection_menu_dmenu() {
-	printf "%s\n%s" "$1" "$2" | dmenu -l 30 | cut -f1 -d' '
+	printf "%s" "$1" | dmenu -l 30 -p "$2" | cut -f1 -d' '
 }
 
 version_text () {
@@ -406,7 +406,7 @@ anime_selection () {
 	elif [ -z "$ep_choice_to_start" ] || { [ -n "$ep_choice_to_start" ] && [ -z "$select_first" ]; }; then
 		selection_list=$(append "$selection_list" "quit" "q")
 	if [ "${dmenu}" -eq 1 ]; then
-		choice=$(selection_menu_dmenu "$selection_list")
+		choice=$(selection_menu_dmenu "${selection_list}" "${scrape} Results")
 		[ -z "$choice" ] && exit 0
 	elif [ "$fzf" -eq 1 ]; then
 		choice=$(selection_menu_fzf ". $scrape Results>>" "$selection_list")
@@ -680,8 +680,7 @@ fi
 # While updating Anilist/ Mal using trackma, we need to use the name of the anime present in Anilist/Mal. Hence the need for trackmafile
 if [ "${trackma}" -eq 1 ]; then
 	trackma_accounts "${track}"
-	temp_sel_id=$(printf "%s" "${selection_id}")
-	trackma_id=$(grep "${temp_sel_id}" "${trackmafile}" | cut -d\" -f2)
+	trackma_id=$(grep "${selection_id}" "${trackmafile}" | cut -d\" -f2)
 	if [ -z "${trackma_id}" ]; then
 		watching_animes_from_anilist
 		temp_selection_id=$(echo "${selection_id}" | cut -d- -f1)
@@ -710,7 +709,7 @@ if [ "${trackma}" -eq 1 ]; then
 			prompt "It seems anime could not be found in your list. Do you want to add the anime to your ${track}? [y/n]"
 			case "${REPLY}" in
 				y)
-					trackma -a "${trackma_account_no}" add "${temp_sel_id}"
+					trackma -a "${trackma_account_no}" add "${selection_id}"
 					watching_animes_from_anilist
 					temp_selection_id=$(echo "${selection_id}" | cut -d- -f1)
 					anime_name=$(grep -i "${temp_selection_id}" /tmp/trackma-cli.txt)
@@ -750,14 +749,14 @@ while : ; do
 	[ "$first_ep_number" -ne "$last_ep_number" ] && menu=$(append "$menu" 'select' 's')
 	menu=$(append "$menu" 'update and quit' 'q')
 	menu=$(append "$menu" 'quit' 'Q')
-	if [ "$dmenu" -eq 1 ];then
+	if [ "${dmenu}" -eq 1 ];then
 		progress ""
-		choice="$(selection_menu_dmenu "$menu")"
-		[ -z "$choice" ] && die "No anime Selected"
+		choice="$(selection_menu_dmenu "${menu}" "Menu")"
+		[ -z "${choice}" ] && die "No anime selected"
 	elif [ "$fzf" -eq 1 ];then
 		progress ""
 		choice="$(selection_menu_fzf ". Menu>>" "$menu")"
-		[ -z "$choice" ] && die "No anime Selected"
+		[ -z "$choice" ] && die "No anime selected"
 	else
 		selection_menu "$menu"
 			choice="$REPLY"
