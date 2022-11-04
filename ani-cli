@@ -169,7 +169,7 @@ download () {
 
 # write anime and episode number and save to temporary history
 update_history () {
-	grep -q "${selection_id}" "${logfile}" || printf "%s\t%s\n" "${selection_id}" $((episode+1)) >> "${logfile}"
+	grep -q -- "${selection_id}" "${logfile}" || printf "%s\t%s\n" "${selection_id}" $((episode+1)) >> "${logfile}"
 	sed -E "s/^${selection_id}\t[0-9]*/${selection_id}\t$((episode+1))/" "${logfile}" > "${logfile}.new"
 	# overwrite history with temporary history
 	mv "${logfile}.new" "${logfile}"
