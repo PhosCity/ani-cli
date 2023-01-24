@@ -360,6 +360,8 @@ while [ $# -gt 0 ]; do
 done
 printf "\33[2K\r\033[1;34mChecking dependencies...\033[0m\n"
 dep_ch "wget" "sed" "grep" "fzf" || true
+[ "${use_external_menu}" -eq 1 ] && dep_ch "rofi"
+[ "${use_trackma}" -eq 1 ] && dep_ch "trackma"
 case "$player_function" in
 debug) ;;
 download) dep_ch "ffmpeg" "aria2c" ;;
