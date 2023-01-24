@@ -14,19 +14,25 @@
 
 - [ ] any anime playing
 - [ ] bumped version
+---
 - [ ] next, prev and replay work
-- [ ] quality works
-- [ ] downloads work
-- [ ] quality works with downloads
-- [ ] select episode -a and rapid resume work
-- [ ] syncplay -s works
-- [ ] autoplay, aka range selection, works
+- [ ] `-c` history and continue work
+- [ ] `-d` downloads work
+- [ ] `-s` syncplay works
+- [ ] `-q` quality works
+- [ ] `-v` vlc works
+- [ ] `-e` select episode works
+- [ ] `-r` range selection works
+- [ ] `--dub` both work
+- [ ] all providers return links (not necessarily on a single anime, use debug mode to confirm)
+---
+- [ ] `-h` help info is up to date
+- [ ] Readme is up to date
+- [ ] Man page is up to date
 
 ## Additional Testcases
 
 - The safe bet: One Piece
 - Episode 0: Saenai Heroine no Sodatekata ♭
 - Unicode: Saenai Heroine no Sodatekata ♭
-- Not uploaded: one piece dub episode 590
-- Unreleased: soredemo ayumu wa yosetekuru
-- Short id (for decryption): Log Horizon episode 1-2
+- Non-whole episodes: Tensei shitara slime datta ken (ep. 24.5, ep. 24.9)

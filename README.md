@@ -21,9 +21,9 @@ https://user-images.githubusercontent.com/44473782/160729779-41fe207c-b5aa-4fed-
 ## New in this fork
 
 - Update history file only after you watch the episode not as soon as you select play it.
-- Option to use dmenu as a launcher for all sort of selection. I create a hotkey to open the script and use dmenu to select anime without ever opening terminal.
+- ~~Option to use dmenu as a launcher for all sort of selection. I create a hotkey to open the script and use dmenu to select anime without ever opening terminal.~~ Added to upstream as of v4
 - Option to update anilist or myanimelist as you update the history file using trackma. Auto selects anime to update if it's present in your watching or plan to watch list otherwise prompts you to add an anime if to your anilist or mal.
-- Only tested in Linux with mpv player. Any other OS or players, I've tried not to mess it for them but it may or may not work.
+- Only tested in Linux with mpv player. Any other OS or players, I've tried not to mess it for them, but it may or may not work.
 
 ## Installing from source
 
@@ -49,14 +49,12 @@ sudo rm "/usr/local/bin/ani-cli"
 
 - grep
 - sed
-- awk
-- curl
-- openssl
+- wget
 - mpv - Video Player
-- axel - Download manager
+- iina - mpv replacement for MacOS
+- aria2c - Download manager
 - ffmpeg - m3u8 Downloader
-- fzf
-- dmenu (Optional)
+- fzf - User interface
 - trackma (Optional)
 
 ## Homies
