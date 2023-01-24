@@ -471,7 +471,7 @@ while cmd=$(printf "update and next\nnext\nprevious\nreplay\nselect\nupdate and 
 	"previous") ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null ;;
 	"replay") ;;
 	"update and next")
-		[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${episode}"
+		[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
 		update_history
 		ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
 		;;
