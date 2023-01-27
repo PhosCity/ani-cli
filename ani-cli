@@ -488,45 +488,6 @@ while cmd=$(printf "update+next\nnext\nprevious\nreplay\nselect\nupdate+quit\nqu
 	play
 done
 
-# # while cmd=$(printf "update and next\nnext\nprevious\nreplay\nselect\nupdate and quit\nquit" | nth "Playing episode $ep_no of $title... "); do
-# while :; do
-# 	menu=""
-# 	next_episode=$((ep_no + 1))
-# 	previous_episode=$((ep_no - 1))
-# 	echo "next: ${next_episode}"
-# 	echo "prev: ${previous_episode}"
-# 	if printf "%s" "${ep_list}" | grep -x "${next_episode}"; then
-# 		menu="update and next"
-# 		menu="${menu}|next"
-# 	fi
-# 	if printf "%s" "${ep_list}" | grep -x "${previous_episode}"; then
-# 		menu="${menu}|previous"
-# 	fi
-# 	menu="${menu}|replay|select|update and quit|quit"
-# 	cmd=$(printf "%s" "${menu}" | tr "|" "\n" | nth "Playing episode $ep_no of $title... ")
-# 	case "${cmd}" in
-# 	"previous") ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null ;;
-# 	"replay") ;;
-# 	"update and next")
-# 		# [ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
-# 		update_history
-# 		ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
-# 		;;
-# 	"next")
-# 		ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
-# 		;;
-# 	"select") ep_no=$(printf "%s" "$ep_list" | nth "Select episode: " "$multi_selection_flag") ;;
-# 	"update and quit")
-# 		# [ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
-# 		# update_history
-# 		exit 0
-# 		;;
-# 	*) exit 0 ;;
-# 	esac
-# 	[ -z "$ep_no" ] && die "Out of range"
-# 	# play
-# done
-
 # ani-cli
 #
 # This program is free software: you can redistribute it and/or modify
