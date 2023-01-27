@@ -238,7 +238,7 @@ play() {
 	end=$(printf "%s" "$ep_no" | grep -Eo "[0-9]+(.[0-9])?$")
 	[ -z "$end" ] || [ "$end" = "$start" ] && unset start end
 	line_count=$(printf "%s\n" "$ep_no" | wc -l)
-	if [ "$line_count" != 1 ] || [ -n "$start" ] ; then
+	if [ "$line_count" != 1 ] || [ -n "$start" ]; then
 		[ -z "$start" ] && start=$(printf "%s\n" "$ep_no" | tail -n1)
 		[ -z "$end" ] && end=$(printf "%s\n" "$ep_no" | head -n1)
 		range=$(printf "%s\n" "$ep_list" | sed '1!G;h;$!d' | sed -nE "/^${start}\$/,/^${end}\$/p")
@@ -461,23 +461,22 @@ if [ "${use_trackma}" -eq 1 ]; then
 	fi
 fi
 
-echo "$ep_list"
 # playback & loop
 play
 [ "$player_function" = "download" ] || [ "$player_function" = "debug" ] && exit 0
 
-while cmd=$(printf "update and next\nnext\nprevious\nreplay\nselect\nupdate and quit\nquit" | nth "Playing episode $ep_no of $title... "); do
+while cmd=$(printf "update+next\nnext\nprevious\nreplay\nselect\nupdate+quit\nquit" | nth "Playing episode $ep_no of $title... "); do
 	case "${cmd}" in
 	"previous") ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null ;;
 	"replay") ;;
-	"update and next")
+	"update+next")
 		[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
 		update_history
 		ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
 		;;
 	"next") ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null ;;
 	"select") ep_no=$(printf "%s" "$ep_list" | nth "Select episode: " "$multi_selection_flag") ;;
-	"update and quit")
+	"update+quit")
 		[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
 		update_history
 		exit 0
@@ -487,6 +486,45 @@ while cmd=$(printf "update and next\nnext\nprevious\nreplay\nselect\nupdate and 
 	[ -z "$ep_no" ] && die "Out of range"
 	play
 done
+
+# # while cmd=$(printf "update and next\nnext\nprevious\nreplay\nselect\nupdate and quit\nquit" | nth "Playing episode $ep_no of $title... "); do
+# while :; do
+# 	menu=""
+# 	next_episode=$((ep_no + 1))
+# 	previous_episode=$((ep_no - 1))
+# 	echo "next: ${next_episode}"
+# 	echo "prev: ${previous_episode}"
+# 	if printf "%s" "${ep_list}" | grep -x "${next_episode}"; then
+# 		menu="update and next"
+# 		menu="${menu}|next"
+# 	fi
+# 	if printf "%s" "${ep_list}" | grep -x "${previous_episode}"; then
+# 		menu="${menu}|previous"
+# 	fi
+# 	menu="${menu}|replay|select|update and quit|quit"
+# 	cmd=$(printf "%s" "${menu}" | tr "|" "\n" | nth "Playing episode $ep_no of $title... ")
+# 	case "${cmd}" in
+# 	"previous") ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null ;;
+# 	"replay") ;;
+# 	"update and next")
+# 		# [ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
+# 		update_history
+# 		ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
+# 		;;
+# 	"next")
+# 		ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
+# 		;;
+# 	"select") ep_no=$(printf "%s" "$ep_list" | nth "Select episode: " "$multi_selection_flag") ;;
+# 	"update and quit")
+# 		# [ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
+# 		# update_history
+# 		exit 0
+# 		;;
+# 	*) exit 0 ;;
+# 	esac
+# 	[ -z "$ep_no" ] && die "Out of range"
+# 	# play
+# done
 
 # ani-cli
 #
