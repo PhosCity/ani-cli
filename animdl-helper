@@ -1,0 +1,211 @@
+#!/bin/sh
+
+# ╭──────────────────────────────────────────────────────────╮
+# │ User Variables                                           │
+# ╰──────────────────────────────────────────────────────────╯
+
+use_external_menu=1
+use_trackma=1
+track="anilist" # Use 'anilist' to track anilist to 'mal' to track myanimelist.
+rofi_config="${HOME}/.config/rofi/themes/window.rasi"
+
+# ╭──────────────────────────────────────────────────────────╮
+# │ Non-user Variables                                       │
+# ╰──────────────────────────────────────────────────────────╯
+
+agent="Mozilla/5.0 (X11; Linux x86_64; rv:99.0) Gecko/20100101 Firefox/100.0"
+mode="${ANI_CLI_MODE:-sub}"
+hist_dir="${ANI_CLI_HIST_DIR:-${XDG_STATE_HOME:-${HOME}/.local/state}/ani-cli}"
+[ ! -d "${hist_dir}" ] && mkdir -p "${hist_dir}"
+
+histfile="${hist_dir}/ani-hsts"
+[ ! -f "${histfile}" ] && : >"${histfile}"
+
+trackmafile="${XDG_STATE_HOME:-${HOME}/.local/state}/ani-cli/ani-trackma-${track}"
+[ ! -f "${trackmafile}" ] && : >"${trackmafile}"
+
+# ╭──────────────────────────────────────────────────────────╮
+# │ Functions                                                │
+# ╰──────────────────────────────────────────────────────────╯
+
+external_menu() {
+	rofi "$1" -theme "${rofi_config}" -sort -dmenu -i -width 1500 -p "$2"
+}
+
+die() {
+	printf "\33[2K\r\033[1;31m%s\033[0m\n" "$*" >&2
+	exit 1
+}
+
+launcher() {
+	[ "${use_external_menu}" = "0" ] && [ -z "$1" ] && set -- "+m" "$2"
+	[ "${use_external_menu}" = "0" ] && fzf "$1" --reverse --prompt "$2"
+	[ "${use_external_menu}" = "1" ] && external_menu "$1" "$2"
+}
+
+nth() {
+	stdin=$(cat -)
+	[ -z "${stdin}" ] && return 1
+	line_count="$(printf "%s\n" "${stdin}" | wc -l)"
+	[ "${line_count}" -eq 1 ] && printf "%s" "${stdin}" | cut -f2,3 && return 0
+	prompt="$1"
+	multi_flag=""
+	[ $# -ne 1 ] && shift && multi_flag="$1"
+	line=$(printf "%s" "${stdin}" | cut -f1,3 --output-delimiter " " | launcher "${multi_flag}" "${prompt}" | cut -d " " -f 1)
+	[ -n "${line}" ] && printf "%s" "${stdin}" | grep -w "^${line}" | cut -f2,3 || exit 1
+}
+
+# get the episodes list of the selected anime
+episodes_list() {
+	wget -q -O - "https://allanime.site/anime/$*" -U "${agent}" | sed 's|\\||g' | sed -nE "s|.*${mode}\":\[([0-9.\",]*)\].*|\1|p" | sed 's|,|\n|g; s|"||g'
+}
+
+process_hist_entry() {
+	ep_list=$(episodes_list "${id}")
+	ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
+	[ -n "${ep_no}" ] && printf "%s\t%s - episode %s\n" "${id}" "${title}" "${ep_no}"
+}
+
+update_history() {
+	if grep -q -- "${id}" "${histfile}"; then
+		sed -E "s/^[^\t]+\t${id}\t/${ep_no}\t${id}\t/" "${histfile}" >"${histfile}.new"
+	else
+		cp "${histfile}" "${histfile}.new"
+		printf "%s\t%s\t%s\n" "${ep_no}" "${id}" "${title}" >>"${histfile}.new"
+	fi
+	mv "${histfile}.new" "${histfile}"
+}
+
+play() {
+	animdl stream "animepahe:${title}" -r "${ep_no}"
+}
+
+# ╭──────────────────────────────────────────────────────────╮
+# │ Trackma                                                  │
+# ╰──────────────────────────────────────────────────────────╯
+
+trackma_accounts() {
+	if printf "q" | trackma | grep -q "No accounts."; then
+		die "Accounts have not been added to trackma. Please type 'trackma' in terminal and follow instructions to add anilist or myanimelist account."
+	elif [ "$1" = "anilist" ]; then
+		trackma_account_no=$(printf "q" | trackma - | grep "anilist" | cut -d: -f1)
+		[ -z "${trackma_account_no}" ] && die "Anilist account not found in trackma. Please add it or change 'track' variable to 'mal' to track myanimelist instead."
+	elif [ "$1" = "mal" ]; then
+		trackma_account_no=$(printf "q" | trackma - | grep "mal" | cut -d: -f1)
+		[ -z "${trackma_account_no}" ] && die "Myanimelist account not found in trackma. Please add it or change 'track' variable to 'anilist' to track anilist instead."
+	fi
+}
+
+trackma_update() {
+	anilist_name=$1
+	current_episode=$2
+	trackma -a "${trackma_account_no}" update "${anilist_name}" "${current_episode}"
+	trackma -a "${trackma_account_no}" send
+}
+
+# Collects the anime from your watching or plan to watch list to autoselect the anime to track.
+# If the anime is neither in your watching nor in your plan to watch list, the script will prompt you to add the anime first.
+watching_animes_from_anilist() {
+	printf "filter watching\nlist\nfilter plantowatch\nlist\nexit" | COLUMNS=130 trackma -a "${trackma_account_no}" | grep "^|" | sed "
+		s/\x1b//g
+		s/^|[[:space:]]*[0-9]*[[:space:]]*//g
+		s:[|/0-9\? ]*$::g
+		s/\.*$//g
+		s/\[0m$//g
+		s/^[[;0-9]*m//g " >/tmp/trackma-cli.txt
+}
+
+# ╭──────────────────────────────────────────────────────────╮
+# │ Read History                                             │
+# ╰──────────────────────────────────────────────────────────╯
+
+anime_list=$(while read -r ep_no id title; do process_hist_entry & done <"${histfile}")
+wait
+[ -z "${anime_list}" ] && die "No unwatched series in history!"
+result=$(printf "%s" "${anime_list}" | nl -w 1 | nth "Select anime: " | cut -f1)
+[ -z "${result}" ] && exit 1
+result=$(grep "${result}" "${histfile}")
+read -r ep_no id title <<-EOF
+	  ${result}
+EOF
+ep_list=$(episodes_list "${id}")
+ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
+title="$(printf "%s" "${title}" | cut -d'(' -f1)"
+allanime_title="$(printf "%s" "${title}" | cut -d'(' -f1 | tr -d '[:punct:]' | tr 'A-Z ' 'a-z-')"
+
+# ╭──────────────────────────────────────────────────────────╮
+# │ Get Trackma Id                                           │
+# ╰──────────────────────────────────────────────────────────╯
+
+# While updating Anilist/ Mal using trackma, we need to use the name of the anime present in Anilist/Mal. Hence the need for trackmafile
+if [ "${use_trackma}" -eq 1 ]; then
+	trackma_accounts "${track}"
+	trackma_id=$(grep "${allanime_title}" "${trackmafile}" | cut -d\" -f2)
+	if [ -z "${trackma_id}" ]; then
+		# Look if the anime is already added to the anilist
+		watching_animes_from_anilist
+		selection_id=$(echo "${allanime_title}" | cut -d- -f1)
+		anime_name=$(grep -i "${selection_id}" /tmp/trackma-cli.txt)
+		if [ -n "${anime_name}" ]; then
+			no_of_results=$(echo "${anime_name}" | wc -l)
+			[ "${no_of_results}" -gt 1 ] && anime_name=$(printf "%s" "${anime_name}" | nth "Select one:")
+			REPLY=$(printf "Yes\nNo" | nth "${anime_name} was auto-selected from your list. Is this correct?")
+			[ "${REPLY}" = "No" ] && anime_name=$(nth "Select an anime: (If anime not found, add it to anilist first)" </tmp/trackma-cli.txt)
+		fi
+		# If the anime was not already added to list, ask the user if they want to add it. Only works in terminal.
+		if [ -z "${anime_name}" ]; then
+			[ "${use_external_menu}" -eq 1 ] && die "${title} not found in your ${track}. Run ani-cli in terminal to add it."
+			REPLY=$(printf "Yes\nNo" | nth "It seems anime could not be found in your list. Do you want to add the anime to your ${track}?")
+			case "${REPLY}" in
+			"Yes")
+				search_title=$(echo "${title}" | cut -d'(' -f1)
+				trackma -a "${trackma_account_no}" add "${search_title}"
+				watching_animes_from_anilist
+				selection_id=$(echo "${title}" | cut -d- -f1)
+				anime_name=$(grep -i "${selection_id}" /tmp/trackma-cli.txt)
+				;;
+			*)
+				if [ "${use_external_menu}" -eq 1 ]; then
+					notify-send "No anime selected"
+				else
+					printf "\33[2K\r\033[1;31m%s\033[0m\n" "No anime selected" >&2
+				fi
+				die "Please add the anime you want to watch in ${track} before continuing or disable ${track} syncing."
+				;;
+			esac
+		fi
+		# If the anime if found/added to list, then proceed with that anime.
+		if [ -n "${anime_name}" ]; then
+			printf "%s\t%s\n" "${allanime_title}" "\"${anime_name}\"" >>"${trackmafile}"
+			trackma_id=$(grep "${allanime_title}" "${trackmafile}" | cut -d\" -f2)
+		else
+			die "Please add the anime you want to watch in ${track} before continuing or disable ${track} syncing."
+		fi
+	fi
+fi
+
+# ╭──────────────────────────────────────────────────────────╮
+# │ Play Episode                                             │
+# ╰──────────────────────────────────────────────────────────╯
+
+play
+while cmd=$(printf "update+next\nnext\nprevious\nreplay\nupdate+quit\nquit" | nth "Playing episode ${ep_no} of ${title}... "); do
+	case "${cmd}" in
+	"previous") ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null ;;
+	"replay") ;;
+	"update+next")
+		[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
+		update_history
+		ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
+		;;
+	"next") ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null ;;
+	"update+quit")
+		[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
+		update_history
+		exit 0
+		;;
+	*) exit 0 ;;
+	esac
+	[ -z "${ep_no}" ] && die "Out of range"
+	play
+done
