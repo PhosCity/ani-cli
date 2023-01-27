@@ -466,18 +466,18 @@ fi
 play
 [ "$player_function" = "download" ] || [ "$player_function" = "debug" ] && exit 0
 
-while cmd=$(printf "update+next\nnext\nprevious\nreplay\nselect\nupdate+quit\nquit" | nth "Playing episode $ep_no of $title... "); do
+while cmd=$(printf "update-next\nnext\nprevious\nreplay\nselect\nupdate-quit\nquit" | nth "Playing episode $ep_no of $title... "); do
 	case "${cmd}" in
 	"previous") ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null ;;
 	"replay") ;;
-	"update+next")
+	"update-next")
 		[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
 		update_history
 		ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
 		;;
 	"next") ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null ;;
 	"select") ep_no=$(printf "%s" "$ep_list" | nth "Select episode: " "$multi_selection_flag") ;;
-	"update+quit")
+	"update-quit")
 		[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
 		update_history
 		exit 0
