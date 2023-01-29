@@ -7,7 +7,7 @@
 use_external_menu=1
 use_trackma=1
 track="anilist" # Use 'anilist' to track anilist to 'mal' to track myanimelist.
-rofi_config="${HOME}/.config/rofi/themes/window.rasi"
+rofi_config="${HOME}/.config/rofi/themes/ani-cli.rasi"
 
 # ╭──────────────────────────────────────────────────────────╮
 # │ Non-user Variables                                       │
@@ -29,7 +29,11 @@ trackmafile="${XDG_STATE_HOME:-${HOME}/.local/state}/ani-cli/ani-trackma-${track
 # ╰──────────────────────────────────────────────────────────╯
 
 external_menu() {
-	rofi "$1" -theme "${rofi_config}" -sort -dmenu -i -width 1500 -p "$2"
+	if [ -f "${rofi_config}" ]; then
+		rofi "$1" -theme "${rofi_config}" -sort -dmenu -i -width 1500 -p "$2"
+	else
+		rofi "$1" -sort -dmenu -i -width 1500 -p "$2"
+	fi
 }
 
 die() {
