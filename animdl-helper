@@ -8,6 +8,8 @@ use_external_menu=1
 use_trackma=1
 track="anilist" # Use 'anilist' to track anilist to 'mal' to track myanimelist.
 rofi_config="${HOME}/.config/rofi/themes/ani-cli.rasi"
+animdl="${HOME}/.local/bin/animdl"
+animdl_provider="animepahe" # allanime, animepahe, animeout, gogoanime, zoro
 
 # ╭──────────────────────────────────────────────────────────╮
 # │ Non-user Variables                                       │
@@ -81,7 +83,7 @@ update_history() {
 }
 
 play() {
-	animdl stream "animepahe:${title}" -r "${ep_no}"
+	"${animdl}" stream "${animdl_provider}:${title}" -r "${ep_no}"
 }
 
 # ╭──────────────────────────────────────────────────────────╮
@@ -193,10 +195,13 @@ fi
 # ╰──────────────────────────────────────────────────────────╯
 
 play
-while cmd=$(printf "update+next\nnext\nprevious\nreplay\nupdate+quit\nquit" | nth "Playing episode ${ep_no} of ${title}... "); do
+while cmd=$(printf "update+next\nnext\nprevious\nreplay\nchange provider\nupdate+quit\nquit" | nth "Playing episode ${ep_no} of ${title}... "); do
 	case "${cmd}" in
 	"previous") ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null ;;
 	"replay") ;;
+	"change provider")
+		animdl_provider=$(printf "allanime\nanimepahe\nanimeout\ngogoanime\nzoro" | nth "Select a provider: ")
+		;;
 	"update+next")
 		[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
 		update_history
