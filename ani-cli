@@ -3,13 +3,16 @@
 version_number="4.0.3"
 
 # User Variables
-rofi_config="${HOME}/.config/rofi/themes/window.rasi"
+rofi_config="${HOME}/.config/rofi/themes/ani-cli.rasi"
 track="anilist" # Use 'anilist' to track anilist to 'mal' to track myanimelist.
 
 # UI
-
 external_menu() {
-	rofi "$1" -theme "${rofi_config}" -sort -dmenu -i -width 1500 -p "$2"
+	if [ -f "${rofi_config}" ]; then
+		rofi "$1" -theme "${rofi_config}" -sort -dmenu -i -width 1500 -p "$2"
+	else
+		rofi "$1" -sort -dmenu -i -width 1500 -p "$2"
+	fi
 }
 
 launcher() {
