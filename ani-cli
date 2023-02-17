@@ -135,7 +135,6 @@ get_links() {
 			;;
 		*) [ -n "$episode_link" ] && printf "%s\n" "$episode_link" ;;
 	esac
-	printf "Fetching %s Links\n" "$provider_name" 1>&2
 }
 
 # innitialises provider_name and provider_id. First argument is the provider name, 2nd is the regex that matches that provider's link
@@ -477,18 +476,18 @@ fi
 play
 [ "$player_function" = "download" ] || [ "$player_function" = "debug" ] && exit 0
 
-while cmd=$(printf "update-next\nnext\nprevious\nreplay\nselect\nupdate-quit\nquit" | nth "Playing episode ${ep_no} of ${title}... "); do
+while cmd=$(printf "update_next\nnext\nprevious\nreplay\nselect\nchange_quality\nupdate_quit\nquit" | nth "Playing episode ${ep_no} of ${title}... "); do
 	case "${cmd}" in
 		"previous") ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null ;;
 		"replay") episode="${replay}" ;;
-		"update-next")
+		"update_next")
 			[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
 			update_history
 			ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null
 			;;
 		"next") ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null ;;
 		"select") ep_no=$(printf "%s" "${ep_list}" | nth "Select episode: " "${multi_selection_flag}") ;;
-		"update-quit")
+		"update_quit")
 			[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
 			update_history
 			exit 0
