@@ -139,7 +139,6 @@ get_links() {
 
 # innitialises provider_name and provider_id. First argument is the provider name, 2nd is the regex that matches that provider's link
 provider_init() {
-	provider_name=$1
 	provider_id=$(printf "%s" "$resp" | sed -n "$2" | head -1 | cut -d':' -f2)
 }
 
