@@ -9,7 +9,7 @@ track="anilist" # Use 'anilist' to track anilist to 'mal' to track myanimelist.
 # UI
 external_menu() {
 	if [ -f "${rofi_config}" ]; then
-		rofi "$1" -theme "${rofi_config}" -sort -dmenu -i -width 1500 -p "$2"
+		rofi "$1" -theme "${rofi_config}" -sort -dmenu -i -p "$2"
 	else
 		rofi "$1" -sort -dmenu -i -width 1500 -p "$2"
 	fi
@@ -88,7 +88,7 @@ version_info() {
 }
 
 update_script() {
-	update="$(curl -s --cipher "AES256-SHA256" --tls-max "1.2" -A "$agent" "https://raw.githubusercontent.com/pystardust/ani-cli/master/ani-cli")" || die "Connection error"
+	update="$(curl -s --cipher "AES256-SHA256" --tls-max "1.2" -A "$agent" "https://raw.githubusercontent.com/PhosCity/ani-cli/phoscity/ani-cli")" || die "Connection error"
 	update="$(printf '%s\n' "$update" | diff -u "$0" -)"
 	if [ -z "$update" ]; then
 		printf "Script is up to date :)\n"
