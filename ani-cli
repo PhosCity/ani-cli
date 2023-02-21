@@ -445,7 +445,7 @@ if [ "${use_trackma}" -eq 1 ]; then
 			REPLY=$(printf "Yes\nNo" | nth "It seems anime could not be found in your list. Do you want to add the anime to your ${track}?")
 			case "${REPLY}" in
 				"Yes")
-					search_title=$(echo "${title}" | cut -d'(' -f1)
+					search_title=$(echo "${title}" | cut -d' ' -f1)
 					trackma -a "${trackma_account_no}" add "${search_title}"
 					watching_animes_from_anilist
 					selection_id=$(echo "${title}" | cut -d- -f1)
