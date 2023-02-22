@@ -15,7 +15,7 @@ animdl_provider="animepahe" # allanime, animepahe, animeout, gogoanime, zoro
 # │ Non-user Variables                                       │
 # ╰──────────────────────────────────────────────────────────╯
 
-agent="Mozilla/5.0 (X11; Linux x86_64; rv:99.0) Gecko/20100101 Firefox/100.0"
+agent="Mozilla/5.0 (Windows NT 6.1; Win64; rv:109.0) Gecko/20100101 Firefox/109.0"
 mode="${ANI_CLI_MODE:-sub}"
 hist_dir="${ANI_CLI_HIST_DIR:-${XDG_STATE_HOME:-${HOME}/.local/state}/ani-cli}"
 [ ! -d "${hist_dir}" ] && mkdir -p "${hist_dir}"
@@ -32,7 +32,7 @@ trackmafile="${XDG_STATE_HOME:-${HOME}/.local/state}/ani-cli/ani-trackma-${track
 
 external_menu() {
 	if [ -f "${rofi_config}" ]; then
-		rofi "$1" -theme "${rofi_config}" -sort -dmenu -i -width 1500 -p "$2"
+		rofi "$1" -theme "${rofi_config}" -sort -dmenu -i -p "$2"
 	else
 		rofi "$1" -sort -dmenu -i -width 1500 -p "$2"
 	fi
@@ -52,29 +52,29 @@ launcher() {
 nth() {
 	stdin=$(cat -)
 	[ -z "${stdin}" ] && return 1
-	line_count="$(printf "%s\n" "${stdin}" | wc -l)"
+	line_count="$(printf "%s\n" "${stdin}" | wc -l | tr -d "[:space:]")"
 	[ "${line_count}" -eq 1 ] && printf "%s" "${stdin}" | cut -f2,3 && return 0
 	prompt="$1"
 	multi_flag=""
 	[ $# -ne 1 ] && shift && multi_flag="$1"
-	line=$(printf "%s" "${stdin}" | cut -f1,3 --output-delimiter " " | launcher "${multi_flag}" "${prompt}" | cut -d " " -f 1)
-	[ -n "${line}" ] && printf "%s" "${stdin}" | grep -w "^${line}" | cut -f2,3 || exit 1
+	line=$(printf "%s" "${stdin}" | cut -f1,3 | tr '\t' ' ' | launcher "${multi_flag}" "${prompt}" | cut -d " " -f 1)
+	[ -n "${line}" ] && printf "%s" "${stdin}" | grep -E '^'"${line}"'($|\s)' | cut -f2,3 || exit 1
 }
 
 # get the episodes list of the selected anime
 episodes_list() {
-	wget -q -O - "https://allanime.site/anime/$*" -U "${agent}" | sed 's|\\||g' | sed -nE "s|.*${mode}\":\[([0-9.\",]*)\].*|\1|p" | sed 's|,|\n|g; s|"||g'
+	curl -e "https://allanime.co" -s "https://api.allanime.co/allanimeapi?variables=%7B%22_id%22%3A%22$*%22%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%22f73a8347df0e3e794f8955a18de6e85ac25dfc6b74af8ad613edf87bb446a854%22%7D%7D" -A "${agent}" | sed 's|\\||g' | sed -nE "s|.*${mode}\":\[([0-9.\",]*)\].*|\1|p" | sed 's|,|\n|g; s|"||g' | sort -n -k 1
 }
 
 process_hist_entry() {
 	ep_list=$(episodes_list "${id}")
-	ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
+	ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null
 	[ -n "${ep_no}" ] && printf "%s\t%s - episode %s\n" "${id}" "${title}" "${ep_no}"
 }
 
 update_history() {
 	if grep -q -- "${id}" "${histfile}"; then
-		sed -E "s/^[^\t]+\t${id}\t/${ep_no}\t${id}\t/" "${histfile}" >"${histfile}.new"
+		sed -E "s/^[^\t]+\t${id}\t/${ep_no}\t${id}\t/" "${histfile}" >"${}.new"
 	else
 		cp "${histfile}" "${histfile}.new"
 		printf "%s\t%s\t%s\n" "${ep_no}" "${id}" "${title}" >>"${histfile}.new"
@@ -135,7 +135,7 @@ read -r ep_no id title <<-EOF
 	  ${result}
 EOF
 ep_list=$(episodes_list "${id}")
-ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
+ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null
 title="$(printf "%s" "${title}" | cut -d'(' -f1)"
 allanime_title="$(printf "%s" "${title}" | cut -d'(' -f1 | tr -d '[:punct:]' | tr 'A-Z ' 'a-z-')"
 
@@ -163,21 +163,21 @@ if [ "${use_trackma}" -eq 1 ]; then
 			[ "${use_external_menu}" -eq 1 ] && die "${title} not found in your ${track}. Run ani-cli in terminal to add it."
 			REPLY=$(printf "Yes\nNo" | nth "It seems anime could not be found in your list. Do you want to add the anime to your ${track}?")
 			case "${REPLY}" in
-			"Yes")
-				search_title=$(echo "${title}" | cut -d'(' -f1)
-				trackma -a "${trackma_account_no}" add "${search_title}"
-				watching_animes_from_anilist
-				selection_id=$(echo "${title}" | cut -d- -f1)
-				anime_name=$(grep -i "${selection_id}" /tmp/trackma-cli.txt)
-				;;
-			*)
-				if [ "${use_external_menu}" -eq 1 ]; then
-					notify-send "No anime selected"
-				else
-					printf "\33[2K\r\033[1;31m%s\033[0m\n" "No anime selected" >&2
-				fi
-				die "Please add the anime you want to watch in ${track} before continuing or disable ${track} syncing."
-				;;
+				"Yes")
+					search_title=$(echo "${title}" | cut -d'(' -f1)
+					trackma -a "${trackma_account_no}" add "${search_title}"
+					watching_animes_from_anilist
+					selection_id=$(echo "${title}" | cut -d- -f1)
+					anime_name=$(grep -i "${selection_id}" /tmp/trackma-cli.txt)
+					;;
+				*)
+					if [ "${use_external_menu}" -eq 1 ]; then
+						notify-send "No anime selected"
+					else
+						printf "\33[2K\r\033[1;31m%s\033[0m\n" "No anime selected" >&2
+					fi
+					die "Please add the anime you want to watch in ${track} before continuing or disable ${track} syncing."
+					;;
 			esac
 		fi
 		# If the anime if found/added to list, then proceed with that anime.
@@ -195,25 +195,25 @@ fi
 # ╰──────────────────────────────────────────────────────────╯
 
 play
-while cmd=$(printf "update+next\nnext\nprevious\nreplay\nchange provider\nupdate+quit\nquit" | nth "Playing episode ${ep_no} of ${title}... "); do
+while cmd=$(printf "update_next\nnext\nprevious\nreplay\nchange_provider\nupdate_quit\nquit" | nth "Playing episode ${ep_no} of ${title}... "); do
 	case "${cmd}" in
-	"previous") ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null ;;
-	"replay") ;;
-	"change provider")
-		animdl_provider=$(printf "allanime\nanimepahe\nanimeout\ngogoanime\nzoro" | nth "Select a provider: ")
-		;;
-	"update+next")
-		[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
-		update_history
-		ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
-		;;
-	"next") ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null ;;
-	"update+quit")
-		[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
-		update_history
-		exit 0
-		;;
-	*) exit 0 ;;
+		"previous") ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null ;;
+		"replay") ;;
+		"change_provider")
+			animdl_provider=$(printf "allanime\nanimepahe\nanimeout\ngogoanime\nzoro" | nth "Select a provider: ")
+			;;
+		"update_next")
+			[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
+			update_history
+			ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
+			;;
+		"next") ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null ;;
+		"update_quit")
+			[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
+			update_history
+			exit 0
+			;;
+		*) exit 0 ;;
 	esac
 	[ -z "${ep_no}" ] && die "Out of range"
 	play
