@@ -10,6 +10,7 @@ track="anilist" # Use 'anilist' to track anilist to 'mal' to track myanimelist.
 rofi_config="${HOME}/.config/rofi/themes/ani-cli.rasi"
 animdl="${HOME}/.local/bin/animdl"
 animdl_provider="animepahe" # allanime, animepahe, animeout, gogoanime, zoro
+multi_selection_flag="${ANI_CLI_MULTI_SELECTION:-"-multi-select"}"
 
 # ╭──────────────────────────────────────────────────────────╮
 # │ Non-user Variables                                       │
@@ -74,7 +75,7 @@ process_hist_entry() {
 
 update_history() {
 	if grep -q -- "${id}" "${histfile}"; then
-		sed -E "s/^[^\t]+\t${id}\t/${ep_no}\t${id}\t/" "${histfile}" >"${}.new"
+		sed -E "s/^[^\t]+\t${id}\t/${ep_no}\t${id}\t/" "${histfile}" >"${histfile}.new"
 	else
 		cp "${histfile}" "${histfile}.new"
 		printf "%s\t%s\t%s\n" "${ep_no}" "${id}" "${title}" >>"${histfile}.new"
@@ -195,9 +196,9 @@ fi
 # ╰──────────────────────────────────────────────────────────╯
 
 play
-while cmd=$(printf "update_next\nnext\nprevious\nreplay\nchange_provider\nupdate_quit\nquit" | nth "Playing episode ${ep_no} of ${title}... "); do
+while cmd=$(printf "update_next\nnext\nprevious\nreplay\nselect\nchange_provider\nupdate_quit\nquit" | nth "Playing episode ${ep_no} of ${title}... "); do
 	case "${cmd}" in
-		"previous") ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null ;;
+		"previous") ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null ;;
 		"replay") ;;
 		"change_provider")
 			animdl_provider=$(printf "allanime\nanimepahe\nanimeout\ngogoanime\nzoro" | nth "Select a provider: ")
@@ -205,9 +206,10 @@ while cmd=$(printf "update_next\nnext\nprevious\nreplay\nchange_provider\nupdate
 		"update_next")
 			[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
 			update_history
-			ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null
+			ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null
 			;;
-		"next") ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{g;1!p;};h") 2>/dev/null ;;
+		"next") ep_no=$(printf "%s" "${ep_list}" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null ;;
+		"select") ep_no=$(printf "%s" "${ep_list}" | nth "Select episode: " "${multi_selection_flag}") ;;
 		"update_quit")
 			[ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
 			update_history
