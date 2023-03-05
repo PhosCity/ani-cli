@@ -24,6 +24,7 @@ https://user-images.githubusercontent.com/44473782/160729779-41fe207c-b5aa-4fed-
 - ~~Option to use dmenu as a launcher for all sort of selection. I create a hotkey to open the script and use dmenu to select anime without ever opening terminal.~~ Added to upstream as of v4
 - Option to update anilist or myanimelist as you update the history file using trackma. Auto selects anime to update if it's present in your watching or plan to watch list otherwise prompts you to add an anime if to your anilist or mal.
 - Only tested in Linux with mpv player. Any other OS or players, I've tried not to mess it for them, but it may or may not work.
+- A script that uses ani-cli's history file but streams using animdl instead. Useful when ani-cli goes down.
 
 ## Installing from source
 
