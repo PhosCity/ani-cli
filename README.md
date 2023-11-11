@@ -1,5 +1,5 @@
 <h3 align="center">
-A cli to browse and watch anime. This tool scrapes the site <a href="https://animixplay.to/">animixplay.</a>
+A cli to browse and watch anime (alone AND with friends). This tool scrapes the site <a href="https://allanime.to/">allanime.</a>
 </h3>
 	
 <h1 align="center">
@@ -10,13 +10,21 @@ A cli to browse and watch anime. This tool scrapes the site <a href="https://ani
 
 ## Table of Contents
 
+- [Fixing errors](#fixing-errors)
 - [New in this fork](#New-in-this-fork)
-- [Install](#Installing-from-source)
-- [Uninstall](#Uninstall)
-- [Dependencies](#Dependencies)
-- [Homies](#Homies)
-- [Contribution Guidelines](./CONTRIBUTING.md)
-- [Disclaimer](./disclaimer.md)
+- [Installing from source](#installing-from-source)
+- [Uninstall](#uninstall)
+- [Dependencies](#dependencies)
+- [Homies](#homies)
+
+## Fixing errors
+
+If you encounter "Video url not found" or any breaking issue, then make sure you are on latest version by typing
+`sudo ani-cli -U` to update.
+If after this the issue persists then open an issue.
+
+History has been reworked and relocated. We're working on a transition script, please be patient. Old history can be viewed with `less ${XDG_CACHE_HOME:-$HOME/.cache}/ani-hsts`
+
 
 ## New in this fork
 
@@ -50,25 +58,25 @@ sudo rm "/usr/local/bin/ani-cli"
 
 - grep
 - sed
-- wget
+- curl
 - mpv - Video Player
 - iina - mpv replacement for MacOS
 - aria2c - Download manager
-- ffmpeg - m3u8 Downloader
+- yt-dlp - m3u8 Downloader
+- ffmpeg - m3u8 Downloader (fallback)
 - fzf - User interface
 - trackma (Optional)
+- rofi (Optional)
+
 
 ## Homies
 
-- [animdl](https://github.com/justfoolingaround/animdl): Ridiculously efficient, fast and light-weight (supports most sources: allanime, zoro ... (Python)
-- [jerry](https://github.com/justchokingaround/jerry): stream anime with anilist tracking and syncing, with discord presence (Shell)
-- [anime-helper-shell](https://github.com/Atreyagaurav/anime-helper-shell): A python shell for searching, watching, and downloading anime (Python)
-- [anipy-cli](https://github.com/sdaqo/anipy-cli): ani-cli rewritten in python (Python)
-- [dra-cla](https://github.com/CoolnsX/dra-cla): ani-cli equivalent for korean dramas (Shell)
-- [kaa.si-cli](https://github.com/Soviena/kaa.si-cli): Stream anime from kaa.si and sync with anilist (Python)
-- [lobster](https://github.com/justchokingaround/lobster): Life action movies and series fom the terminal (Shell)
-- [manga-cli](https://github.com/7USTIN/manga-cli): Read manga in the cli (Shell)
-- [mangal](https://github.com/metafates/mangal): Download & read manga from any source with anilist sync (Go)
-- [mov-cli](https://github.com/mov-cli/mov-cli): Watch movies/shows in the cli (Python/Shell)
-- [saikou](https://github.com/saikou-app/saikou): Best android app for anime/manga with anilist integration (Kotlin)
-- [tv-cli](https://github.com/Spaxly/tv-cli): Watch live TV in the cli (Shell)
+* [animdl](https://github.com/justfoolingaround/animdl): Ridiculously efficient, fast and light-weight (supports most sources: allanime, zoro ... (Python)
+* [jerry](https://github.com/justchokingaround/jerry): stream anime with anilist tracking and syncing, with discord presence (Shell)
+* [anipy-cli](https://github.com/sdaqo/anipy-cli): ani-cli rewritten in python (Python)
+* [saikou](https://github.com/saikou-app/saikou): Best android app for anime/manga with anilist integration (Kotlin)
+* [mangal](https://github.com/metafates/mangal): Download & read manga from any source with anilist sync (Go)
+* [lobster](https://github.com/justchokingaround/lobster): Watch movies and series from the terminal (Shell)
+* [mov-cli](https://github.com/mov-cli/mov-cli): Watch movies/shows in the cli (Python/Shell)
+* [dra-cla](https://github.com/CoolnsX/dra-cla): ani-cli equivalent for korean dramas (Shell)
+* [redqu](https://github.com/port19x/redqu):  A media centric reddit client (Clojure)
