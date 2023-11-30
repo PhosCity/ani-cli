@@ -67,7 +67,7 @@ sudo rm "/usr/local/bin/ani-cli"
 - fzf - User interface
 - trackma (Optional)
 - rofi (Optional)
-
+- ani-skip (optional)
 
 ## Homies
 
