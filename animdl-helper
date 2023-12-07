@@ -7,12 +7,15 @@
 # │ User Variables                                           │
 # ╰──────────────────────────────────────────────────────────╯
 
-use_external_menu=1
-use_trackma=1
-track="anilist" # Use 'anilist' to track anilist to 'mal' to track myanimelist.
-rofi_config="${HOME}/.config/rofi/ani-cli.rasi"
-animdl="${HOME}/.local/bin/animdl"
-animdl_provider="animepahe" # allanime, animepahe, animeout, gogoanime, zoro
+# 1 means enabled 0 means disabled
+index=1                                         # Index to auto-select
+use_index=1                                     # Auto select what animdl finds when an anime is searched. Set 0 to disable
+use_trackma=1                                   # Use Trackma to update you anilist/mal when you finish watching episode
+track="anilist"                                 # Use 'anilist' to track anilist to 'mal' to track myanimelist.
+use_external_menu=1                             # Use rofi to do all selection of script
+animdl_provider="animepahe"                     # allanime, animepahe, animeout, gogoanime, zoro
+animdl="${HOME}/.local/bin/animdl"              # Path to animdl binary
+rofi_config="${HOME}/.config/rofi/ani-cli.rasi" # Path to rofi config (Optional)
 
 # ╭──────────────────────────────────────────────────────────╮
 # │ Non-user Variables                                       │
@@ -70,7 +73,11 @@ update_history() {
 }
 
 play() {
-    "${animdl}" stream "${animdl_provider}:${anime}" -r "${episode}"
+    if [ "${use_index}" = "1" ]; then
+        "${animdl}" stream "${animdl_provider}:${anime}" -r "${episode}" -q "best" --index "${index}"
+    else
+        "${animdl}" stream "${animdl_provider}:${anime}" -r "${episode}" -q "best"
+    fi
 }
 
 # ╭──────────────────────────────────────────────────────────╮
