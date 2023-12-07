@@ -2,10 +2,6 @@
 
 version_number="4.7.0"
 
-# USER VARIABLES
-rofi_config="${HOME}/.config/rofi/ani-cli.rasi"
-track="anilist" # Use 'anilist' to track anilist to 'mal' to track myanimelist.
-
 # UI
 
 external_menu() {
@@ -362,6 +358,8 @@ histfile="$hist_dir/ani-hsts"
 [ ! -f "$histfile" ] && : >"$histfile"
 search="${ANI_CLI_DEFAULT_SOURCE:-scrape}"
 
+rofi_config="${ANI_CLI_ROFI_THEME:-${HOME}/.config/rofi/ani-cli.rasi}"
+track="${ANI_CLI_TRACK:-anilist}" # Use 'anilist' to track anilist to 'mal' to track myanimelist.
 use_trackma="${ANI_CLI_TRACKMA:-0}"
 trackmafile="${XDG_STATE_HOME:-${HOME}/.local/state}/ani-cli/ani-trackma-${track}"
 [ ! -f "${trackmafile}" ] && : >"${trackmafile}"
