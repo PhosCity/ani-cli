@@ -508,18 +508,14 @@ if [ "${use_trackma}" -eq 1 ]; then
             REPLY=$(printf "%s\nCancel" "${allanime_title}" | external_menu "" "Anime not found in your ${track}. Choose/Type the anime to add.")
             case "${REPLY}" in
                 "Cancel" | "")
-                    if [ "${use_external_menu}" -eq 1 ]; then
-                        notify-send "No anime selected"
-                    else
-                        printf "\33[2K\r\033[1;31m%s\033[0m\n" "No anime selected" >&2
-                    fi
+                    printf "\33[2K\r\033[1;31m%s\033[0m\n" "No anime selected" >&2
                     die "Please add the anime you want to watch in ${track} before continuing or disable ${track} syncing."
                     ;;
                 *)
                     search_title=$(printf "%s" "${REPLY}" | nth "Select anime to add to ${track}")
                     trackma -a "${trackma_account_no}" add "${search_title}"
                     watching_animes_from_anilist
-                    selection_id=$(echo "${title}" | cut -d- -f1)
+                    selection_id=$(echo "${allanime_title}" | cut -d" " -f1)
                     anime_name=$(grep -i "${selection_id}" /tmp/trackma-cli.txt)
                     ;;
             esac
