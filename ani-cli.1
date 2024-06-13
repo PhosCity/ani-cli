@@ -28,9 +28,6 @@ Download episode.
 \fB\-D | --delete\fR
 Delete history.
 .TP
-\fB\-S | --select-nth\fR \fI\,<index>\/\fR
-Selects nth entry.
-.TP
 \fB\-h | --help\fR
 Show summary of options.
 .TP
@@ -46,9 +43,6 @@ Fetch update from github.
 \fB\-v | --vlc\fR
 Use VLC as the media player.
 .TP
-\fB\-N | --non-interactive\fR
-Disable the interactive menu.
-.TP
 \fB\-S | --select-nth\fR \fI\,<index>\/\fR
 Selects nth entry.
 .TP
@@ -59,13 +53,15 @@ Prints a countdown to the next episode as the last episode in the list. If in hi
 Play the dubbed version. Without this flag, it'll always play the subbed version.
 .TP
 \fB\--rofi\fR
-Use rofi instead of fzf for the interactive menu 
+Use rofi instead of fzf for the interactive menu
 .TP
 \fB\--skip\fR
 Use ani-skip to skip the intro of the episode (mpv only)
 .TP
 \fB\--no-detach\fR
 Don't detach the player (useful for in-terminal playback, mpv only)
+\fB\--exit-after-play\fR
+Exit the player, and return the player exit code (useful for non interactive scenarios, works only if --no-detach is used, mpv only)
 .TP
 \fB\--skip-title\fR \fI\,<title>\/\fR
 Specify the title to use for ani-skip
