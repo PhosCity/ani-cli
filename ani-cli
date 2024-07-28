@@ -230,8 +230,9 @@ process_hist_entry() {
 }
 
 update_history() {
+    escaped_title=$(echo "$title" | sed -E 's/[\&\/\\]/\\&/g')
     if grep -q -- "$id" "$histfile"; then
-        sed -E "s|^[^\t]+\t${id}\t[^\t]+$|${ep_no}\t${id}\t${title}|" "$histfile" >"${histfile}.new"
+        sed -E "s|^[^\t]+\t${id}\t[^\t]+$|${ep_no}\t${id}\t${escaped_title}|" "$histfile" >"${histfile}.new"
     else
         cp "$histfile" "${histfile}.new"
         printf "%s\t%s\t%s\n" "$ep_no" "$id" "$title" >>"${histfile}.new"
