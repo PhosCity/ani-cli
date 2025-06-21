@@ -30,7 +30,7 @@ nth() {
     line_start=$(printf "%s" "$line" | head -n1)
     line_end=$(printf "%s" "$line" | tail -n1)
     [ -n "$line" ] || exit 1
-    if [ -z "$multi_flag" ]; then
+    if [ -z "$multi_flag" ] || [ "$line_start" -eq "$line_end" ]; then
         printf "%s" "$stdin" | grep -E '^'"${line}"'($|[[:space:]])' | cut -f2,3 || exit 1
     else
         printf "%s" "$stdin" | sed -n '/^'"${line_start}"'$/,/^'"${line_end}$"'/p' || exit 1
@@ -353,7 +353,7 @@ play() {
 # TRACKMA #
 ###########
 
-trackma_accounts() {
+get_trackma_account_no() {
     if printf "q" | trackma | grep -q "No accounts."; then
         die "Accounts have not been added to trackma. Please type 'trackma' in terminal and follow instructions to add anilist or myanimelist account."
     elif [ "$1" = "anilist" ]; then
@@ -372,14 +372,14 @@ trackma_update() {
 
 # Collects the anime from your watching or plan to watch list to autoselect the anime to track.
 # If the anime is neither in your watching nor in your plan to watch list, the script will prompt you to add the anime first.
-watching_animes_from_anilist() {
-    printf "filter watching\nlist\nfilter rewatching\nlist\nfilter plantowatch\nlist\nexit" | COLUMNS=130 trackma -a "${trackma_account_no}" | grep "^|" | sed "
+get_animes_from_anilist() {
+    printf "filter watching\nlist\nfilter rewatching\nlist\nfilter plantowatch\nlist\nfilter completed\nlist\nexit" | COLUMNS=130 trackma -a "${trackma_account_no}" | grep "^|" | sed "
 		s/\x1b//g
 		s/^|[[:space:]]*[0-9]*[[:space:]]*//g
 		s:[|/0-9\? ]*$::g
 		s/\.*$//g
 		s/\[0m$//g
-		s/^[[;0-9]*m//g " >/tmp/trackma-cli.txt
+		s/^[[;0-9]*m//g "
 }
 
 # MAIN
@@ -559,26 +559,32 @@ tput sc
 
 # While updating Anilist/ Mal using trackma, we need to use the name of the anime present in Anilist/Mal. Hence the need for trackmafile
 if [ "${use_trackma}" -eq 1 ]; then
-    trackma_accounts "${track}"
-    trackma_id=$(grep "${id}" "${trackmafile}" | cut -f2)
+    get_trackma_account_no "${track}"
+    trackma_anime_name=$(grep "${id}" "${trackmafile}" | cut -f2)
 
-    if [ -z "${trackma_id}" ]; then
-        # Look if the anime is already added to the anilist
-        watching_animes_from_anilist
+    if [ -z "${trackma_anime_name}" ]; then
+        anime_list=$(get_animes_from_anilist)
         selection_id=$(echo "${allanime_title}" | cut -d" " -f1)
-        anime_name=$(grep -i "${selection_id}" /tmp/trackma-cli.txt)
+        anime_name=$(echo "${anime_list}" | grep -i "${selection_id}")
 
+        # If anime is already added to anilist
         if [ -n "${anime_name}" ]; then
             no_of_results=$(echo "${anime_name}" | wc -l)
+
             [ "${no_of_results}" -gt 1 ] && anime_name=$(printf "%s" "${anime_name}" | nth "Select one:")
+
             REPLY=$(printf "Yes\nNo" | nth "${anime_name} was auto-selected from your list. Is this correct?")
-            [ "${REPLY}" = "No" ] && anime_name=$(nth "Select an anime: (If anime not found, add it to anilist first)" </tmp/trackma-cli.txt)
+
+            [ "${REPLY}" = "No" ] && anime_name=$(echo "${anime_list}" | nth "Select an anime: (If anime not found, add it to anilist first)")
         fi
 
         # If the anime was not already added to list, ask the user if they want to add it. Only works in terminal.
         if [ -z "${anime_name}" ]; then
+
             [ "${use_external_menu}" -eq 1 ] && die "${title} not found in your ${track}. Run ani-cli in terminal to add it."
+
             REPLY=$(printf "%s\nCancel" "${allanime_title}" | external_menu "" "Anime not found in your ${track}. Choose/Type the anime to add.")
+
             case "${REPLY}" in
                 "Cancel" | "")
                     printf "\33[2K\r\033[1;31m%s\033[0m\n" "No anime selected" >&2
@@ -587,9 +593,9 @@ if [ "${use_trackma}" -eq 1 ]; then
                 *)
                     search_title=$(printf "%s" "${REPLY}" | nth "Select anime to add to ${track}")
                     trackma -a "${trackma_account_no}" add "${search_title}"
-                    watching_animes_from_anilist
+                    anime_list=$(get_animes_from_anilist)
                     selection_id=$(echo "${allanime_title}" | cut -d" " -f1)
-                    anime_name=$(grep -i "${selection_id}" /tmp/trackma-cli.txt)
+                    anime_name=$(echo "${anime_list}" | grep -i "${selection_id}")
                     ;;
             esac
         fi
@@ -597,7 +603,7 @@ if [ "${use_trackma}" -eq 1 ]; then
         # If the anime is found/added to list, then proceed with that anime.
         if [ -n "${anime_name}" ]; then
             printf "%s\t%s\n" "${id}" "${anime_name}" >>"${trackmafile}"
-            trackma_id=$(grep "${id}" "${trackmafile}" | cut -f2)
+            trackma_anime_name=$(grep "${id}" "${trackmafile}" | cut -f2)
         else
             die "Please add the anime you want to watch in ${track} before continuing or disable ${track} syncing."
         fi
@@ -613,7 +619,7 @@ play
 while cmd=$(printf "update_next\nnext\nprevious\nreplay\nselect\nchange_quality\nupdate_quit\nquit" | nth "Playing episode $ep_no of $title... "); do
     case "$cmd" in
         update_next)
-            [ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
+            [ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_anime_name}" "${ep_no}"
             update_history
             ep_no=$(printf "%s" "$ep_list" | sed -n "/^${ep_no}$/{n;p;}") 2>/dev/null
             ;;
@@ -627,7 +633,7 @@ while cmd=$(printf "update_next\nnext\nprevious\nreplay\nselect\nchange_quality\
             episode=$(printf "%s" "$episode" | cut -d'>' -f2)
             ;;
         update_quit)
-            [ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_id}" "${ep_no}"
+            [ "${use_trackma}" -eq 1 ] && trackma_update "${trackma_anime_name}" "${ep_no}"
             update_history
             exit 0
             ;;
