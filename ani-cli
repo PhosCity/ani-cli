@@ -45,10 +45,10 @@ nth() {
 }
 
 die() {
-    if [ "${use_external_menu}" == "0" ]; then
+    if [ "${use_external_menu}" = "0" ]; then
         printf "\33[2K\r\033[1;31m%s\033[0m\n" "$*" >&2
     else
-        notify-send $*
+        notify-send "$*"
     fi
     exit 1
 }
