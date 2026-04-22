@@ -84,7 +84,7 @@ help_info() {
       -e, --episode, -r, --range
         Specify the number of episodes to watch
       -t, --trackma
-        Use trackma to update anilist or mal
+        Use trackma to update anilist
       --dub
         Play dubbed version
       --rofi
@@ -419,12 +419,9 @@ play() {
 get_trackma_account_no() {
     if printf "q" | trackma | grep -q "No accounts."; then
         die "Accounts have not been added to trackma. Please type 'trackma' in terminal and follow instructions to add anilist or myanimelist account."
-    elif [ "$1" = "anilist" ]; then
+    else
         trackma_account_no=$(printf "q" | trackma - | grep "anilist" | cut -d: -f1)
-        [ -z "${trackma_account_no}" ] && die "Anilist account not found in trackma. Please add it or change 'track' variable to 'mal' to track myanimelist instead."
-    elif [ "$1" = "mal" ]; then
-        trackma_account_no=$(printf "q" | trackma - | grep "mal" | cut -d: -f1)
-        [ -z "${trackma_account_no}" ] && die "Myanimelist account not found in trackma. Please add it or change 'track' variable to 'anilist' to track anilist instead."
+        [ -z "${trackma_account_no}" ] && die "Anilist account not found in trackma."
     fi
 }
 
@@ -481,9 +478,8 @@ histfile="$hist_dir/ani-hsts"
 search="${ANI_CLI_DEFAULT_SOURCE:-scrape}"
 
 rofi_config="${ANI_CLI_ROFI_THEME:-${HOME}/.config/rofi/ani-cli.rasi}"
-track="${ANI_CLI_TRACK:-anilist}" # Use 'anilist' to track anilist to 'mal' to track myanimelist.
 use_trackma="${ANI_CLI_TRACKMA:-0}"
-trackmafile="${XDG_STATE_HOME:-${HOME}/.local/state}/ani-cli/ani-trackma-${track}"
+trackmafile="${XDG_STATE_HOME:-${HOME}/.local/state}/ani-cli/ani-trackma-anilist"
 [ ! -f "${trackmafile}" ] && : >"${trackmafile}"
 
 while [ $# -gt 0 ]; do
@@ -628,57 +624,36 @@ tput cuu1 && tput el
 # stores the position of cursor
 tput sc
 
-# While updating Anilist/ Mal using trackma, we need to use the name of the anime present in Anilist/Mal. Hence the need for trackmafile
+# While updating Anilist using trackma, we need to use the name of the anime present in Anilist. Hence the need for trackmafile
 if [ "${use_trackma}" -eq 1 ]; then
-    get_trackma_account_no "${track}"
+    get_trackma_account_no
     trackma_anime_name=$(grep "${id}" "${trackmafile}" | cut -f2)
 
     if [ -z "${trackma_anime_name}" ]; then
         anime_list=$(get_animes_from_anilist)
-        selection_id=$(echo "${allanime_title}" | cut -d" " -f1)
-        anime_name=$(echo "${anime_list}" | grep -i "${selection_id}")
-
-        # If anime is already added to anilist
-        if [ -n "${anime_name}" ]; then
-            no_of_results=$(echo "${anime_name}" | wc -l)
-
-            [ "${no_of_results}" -gt 1 ] && anime_name=$(printf "%s" "${anime_name}" | nth "Select one:")
-
-            REPLY=$(printf "Yes\nNo" | nth "${anime_name} was auto-selected from your list. Is this correct?")
-
-            [ "${REPLY}" = "No" ] && anime_name=$(echo "${anime_list}" | nth "Select an anime: (If anime not found, add it to anilist first)")
-        fi
-
-        # If the anime was not already added to list, ask the user if they want to add it. Only works in terminal.
-        if [ -z "${anime_name}" ]; then
-
-            [ "${use_external_menu}" -eq 1 ] && die "${title} not found in your ${track}. Run ani-cli in terminal to add it."
-
-            REPLY=$(printf "%s\nCancel" "${allanime_title}" | external_menu "" "Anime not found in your ${track}. Choose/Type the anime to add.")
-
-            case "${REPLY}" in
-                "Cancel" | "")
-                    printf "\33[2K\r\033[1;31m%s\033[0m\n" "No anime selected" >&2
-                    die "Please add the anime you want to watch in ${track} before continuing or disable ${track} syncing."
-                    ;;
-                *)
-                    search_title=$(printf "%s" "${REPLY}" | nth "Select anime to add to ${track}")
-                    trackma -a "${trackma_account_no}" add "${search_title}"
-                    anime_list=$(get_animes_from_anilist)
-                    selection_id=$(echo "${allanime_title}" | cut -d" " -f1)
-                    anime_name=$(echo "${anime_list}" | grep -i "${selection_id}")
-                    ;;
-            esac
-        fi
-
-        # If the anime is found/added to list, then proceed with that anime.
-        if [ -n "${anime_name}" ]; then
-            printf "%s\t%s\n" "${id}" "${anime_name}" >>"${trackmafile}"
-            trackma_anime_name=$(grep "${id}" "${trackmafile}" | cut -f2)
+        if [ "$use_external_menu" = "0" ]; then
+            printf "\33[2K\r\033[1;36mName of the anime (Default: \"%s\"): \033[0m" "${allanime_title}" && read -r anime_name
         else
-            die "Please add the anime you want to watch in ${track} before continuing or disable ${track} syncing."
+            anime_name=$(printf "" | external_menu "" "Name of the anime (Default: \"${allanime_title}\"): " "$external_menu_args")
         fi
+        [ -z "${anime_name}" ] && anime_name="${allanime_title}"
 
+        url=$(curl "https://graphql.anilist.co" \
+            --silent -X POST -H 'content-type: application/json' -H 'accept: application/json' \
+            --data "{\"query\":\"query (\$id: Int, \$page: Int, \$perPage: Int, \$search: String) {Page (page: \$page, perPage: \$perPage){media (id: \$id, search: \$search, type: ANIME) {id title {romaji}}}}\", \"variables\": {\"search\": \"${anime_name}\", \"page\": 1, \"perPage\": 10}}")
+
+        name=$(echo "${url}" | jq '.data.Page.media' | grep "romaji" | sed -e 's/.*: "\(.*\)"/\1/' -e 's/://g')
+        trackma_anime_name=$(printf "%s" "${name}" | launcher "" "Select the anime:")
+        [ -z "${trackma_anime_name}" ] && die "No result obtained from anilist for search \"${anime_name}\""
+
+        if printf '%s\n' "${anime_list}" | grep -w -q "${trackma_anime_name}"; then
+            :
+        else
+
+            REPLY=$(printf "Yes\nNo" | nth "Do you want to add \"${trackma_anime_name}\" to your anilist?")
+            [ "${REPLY}" = "No" ] && die "You chose to track anime using anilist but then chose not to add the anime to your anilist."
+            trackma -a "${trackma_account_no}" add "${trackma_anime_name}"
+        fi
     fi
 
 fi
