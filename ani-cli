@@ -691,9 +691,9 @@ if [ "${use_trackma}" -eq 1 ]; then
     if [ -z "${trackma_anime_name}" ]; then
         anime_list=$(get_animes_from_anilist)
         if [ "$use_external_menu" = "0" ]; then
-            printf "\33[2K\r\033[1;36mName of the anime (Default: \"%s\"): \033[0m" "${allanime_title}" && read -r anime_name
+            printf "\33[2K\r\033[1;36mSearch in anilist (Default: \"%s\"): \033[0m" "${allanime_title}" && read -r anime_name
         else
-            anime_name=$(printf "" | external_menu "" "Name of the anime (Default: \"${allanime_title}\"): " "$external_menu_args")
+            anime_name=$(printf "" | external_menu "" "Search in anilist (Default: \"${allanime_title}\"): " "$external_menu_args")
         fi
         [ -z "${anime_name}" ] && anime_name="${allanime_title}"
 
@@ -713,6 +713,7 @@ if [ "${use_trackma}" -eq 1 ]; then
             [ "${REPLY}" = "No" ] && die "You chose to track anime using anilist but then chose not to add the anime to your anilist."
             trackma -a "${trackma_account_no}" add "${trackma_anime_name}"
         fi
+        printf "%s\t%s\n" "${id}" "${trackma_anime_name}" >>"${trackmafile}"
     fi
 
 fi
