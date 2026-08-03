@@ -355,7 +355,6 @@ play_episode() {
     esac
     replay="$video_link"
     unset video_link
-    update_history
     [ "$menu_program" != "fzf" ] && wait
 }
 
@@ -386,6 +385,14 @@ play() {
     fi
     # moves up to stored position and deletes to end
     [ "$player_function" != "debug" ] && [ "$player_function" != "download" ] && tput rc && tput ed
+}
+
+get_episode_offset() {
+    if [ -n "${trackma_anime_offset}" ]; then
+        real_ep_no=$((ep_no - trackma_anime_offset))
+    else
+        real_ep_no=${ep_no}
+    fi
 }
 
 ###########
@@ -660,11 +667,7 @@ if [ "${use_trackma}" -eq 1 ]; then
 
 fi
 
-if [ -n "${trackma_anime_offset}" ]; then
-    real_ep_no=$((ep_no - trackma_anime_offset))
-else
-    real_ep_no=${ep_no}
-fi
+get_episode_offset
 
 # playback & loop
 play
@@ -709,6 +712,7 @@ while cmd=$(printf "update_next\nnext\nreplay\nprevious\nselect$seasons_option\n
             ;;
     esac
     [ -z "$ep_no" ] && die "Out of range"
+    get_episode_offset
     play
 done
 
